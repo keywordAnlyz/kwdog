@@ -17,13 +17,13 @@
 
 package worddog
 
-import ( 
-	"strings" 
+import (
+	"errors"
 	"io/ioutil"
 	"path"
-	"errors"
+	"strings"
 
-	"github.com/huichen/sego" 
+	"github.com/huichen/sego"
 )
 
 var (
@@ -33,11 +33,11 @@ var (
 func init() {
 	initConfig()
 
-	Segmenter.LoadDictionary(strings.Join( Config.DictionaryFiles,","))
+	Segmenter.LoadDictionary(strings.Join(Config.DictionaryFiles, ","))
 }
 
 //词汇在文本中的位置
-type Position struct{
+type Position struct {
 	//开始位置
 	Start int
 	//结束位置，不包含该位置
@@ -45,11 +45,11 @@ type Position struct{
 }
 
 // 词汇信息
-type Word struct{
+type Word struct {
 	//词汇文本信息
-	Text string  
+	Text string
 	//词汇属性
-	Pos string
+	Pos       string
 	Positions []Position
 }
 
@@ -59,56 +59,54 @@ func (w *Word) Frequency() int {
 }
 
 // 解析本地文件
-func SegmentFile(filename string) (map[string]*Word,error) {
+func SegmentFile(filename string) (map[string]*Word, error) {
 
-	if path.Ext(filename)!=".txt"{
-		return nil,errors.New("仅支持 .txt 纯文本文件解析")
+	if path.Ext(filename) != ".txt" {
+		return nil, errors.New("仅支持 .txt 纯文本文件解析")
 	}
 
-	 bytes,err :=ioutil.ReadFile(filename)
-	 if err!=nil{
-	 	return nil, err
-	 }
-	 return SegmentByte(bytes)
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return SegmentByte(bytes)
 }
 
- 
 // 解析文本
-func SegmentText(text string) (map[string]*Word,error) { 
-	 return SegmentByte([]byte(text))
+func SegmentText(text string) (map[string]*Word, error) {
+	return SegmentByte([]byte(text))
 }
 
 // 解析 Bytes 数据
-func SegmentByte(bytes []byte) (map[string]*Word,error) { 
-	if len(bytes)==0{
-		return map[string]*Word{},nil
+func SegmentByte(bytes []byte) (map[string]*Word, error) {
+	if len(bytes) == 0 {
+		return map[string]*Word{}, nil
 	}
 
-	segments := Segmenter.Segment(bytes) 
+	segments := Segmenter.Segment(bytes)
 
-	return machin(segments),nil 
+	return machin(segments), nil
 }
 
-
 func machin(segments []sego.Segment) map[string]*Word {
-	words :=make(map[string]*Word,len(segments)/2)
- 
-	for _,s :=range segments{
-		text :=s.Token().Text()
-		if item,ok:=words[text];ok{
-			item.Positions=append(item.Positions,
+	words := make(map[string]*Word, len(segments)/2)
+
+	for _, s := range segments {
+		text := s.Token().Text()
+		if item, ok := words[text]; ok {
+			item.Positions = append(item.Positions,
 				Position{
-					Start:s.Start(),
-					End:s.End(),
+					Start: s.Start(),
+					End:   s.End(),
 				})
-		}else{
-			words[text]=&Word{
-				Text:text, 
-				Pos:s.Token().Pos(),
-				Positions:[]Position{
+		} else {
+			words[text] = &Word{
+				Text: text,
+				Pos:  s.Token().Pos(),
+				Positions: []Position{
 					{
-						Start:s.Start(),
-						End:s.End(),
+						Start: s.Start(),
+						End:   s.End(),
 					},
 				},
 			}
@@ -116,10 +114,10 @@ func machin(segments []sego.Segment) map[string]*Word {
 	}
 
 	//移除低于频次下限的词汇
-	if Config.MinFre>0{ 
-		for k,v:=range words{
-			if check(v)==false {
-				delete(words,k)
+	if Config.MinFre > 0 {
+		for k, v := range words {
+			if check(v) == false {
+				delete(words, k)
 			}
 		}
 	}
@@ -131,10 +129,15 @@ func machin(segments []sego.Segment) map[string]*Word {
 //   1.符合最低频次要求
 //   2.不属于黑名单词汇
 func check(w *Word) bool {
-	if w.Frequency()<Config.MinFre{
+
+	//删除标点符号
+	if w.Pos == "x" {
 		return false
 	}
-	if Config.BlackWords[w.Text]{
+	if w.Frequency() < Config.MinFre {
+		return false
+	}
+	if Config.BlackWords[w.Text] {
 		return false
 	}
 	return true

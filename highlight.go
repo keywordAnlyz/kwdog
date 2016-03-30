@@ -18,9 +18,7 @@
 package worddog
 
 import (
-	"bytes"
 	"image/color"
-	"log"
 	"sort"
 )
 
@@ -30,7 +28,7 @@ func (p PositionsSlice) Len() int {
 	return len(p)
 }
 func (p PositionsSlice) Less(i, j int) bool {
-	return p[i].Start < p[j].Start
+	return p[i].Start <= p[j].Start && p[i].End <= p[j].End
 }
 func (p PositionsSlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
@@ -55,10 +53,8 @@ func (h *Highlight) Highlight(data []byte, words ...*Word) string {
 	for _, w := range words {
 		positions = append(positions, w.Positions...)
 	}
-	//排序
-	sort.Sort(positions)
-
-	log.Print(positions)
+	//排序去重
+	positions = positions.remoteOverlapZone()
 
 	//按顺序修改
 	// 记录修改增长
@@ -69,30 +65,14 @@ func (h *Highlight) Highlight(data []byte, words ...*Word) string {
 		signLen  = len(tagBegin) + len(tagEnd)
 	)
 
-	var preEnd, newStart, newEnd int
+	var newStart, newEnd int
 	for _, p := range positions {
 
 		newStart = p.Start + addLen
 		newEnd = p.End + addLen
 
-		if preEnd > newEnd {
-			newEnd -= len(tagEnd)
-			newStart -= len(tagEnd)
-		}
-
-		log.Println(string(data), newStart, newEnd, p)
 		//插入 tag
 		newData := make([]byte, 0, len(data)+signLen)
-
-		if newStart > len(tagBegin) {
-
-			log.Println(bytes.NewBuffer(data[newStart-len(tagBegin):newStart]).String(), "===", len(tagBegin))
-		}
-
-		if newStart > len(tagBegin) && string(data[newStart-len(tagBegin):newStart]) == string(tagBegin) {
-
-			//newStart = newStart - len(tagBegin) - 1
-		}
 
 		newData = append(newData, data[:newStart]...)
 		newData = append(newData, tagBegin...)
@@ -101,10 +81,31 @@ func (h *Highlight) Highlight(data []byte, words ...*Word) string {
 		newData = append(newData, data[newEnd:]...)
 
 		data = newData
-
 		addLen += signLen
-		preEnd = newEnd
+
 	}
 
 	return string(data)
+}
+
+// 删除重叠部分
+func (p PositionsSlice) remoteOverlapZone() PositionsSlice {
+	//排序
+	sort.Sort(p)
+
+	//默认已按 Start 和 End 排序，遍历删除重叠区间
+	// 前面元素必然比后面元素范围更小，只需要检查当前元素是否包含在下一个元素中即可。
+	newS := p[:0]
+	for i := 0; i < len(p); i++ {
+		if i == len(p)-1 {
+			newS = append(newS, p[i])
+		} else {
+			p1, p2 := p[i], p[i+1]
+			// p1 在 p2 范围内
+			if !(p1.Start >= p2.Start && p1.End <= p2.End) {
+				newS = append(newS, p1)
+			}
+		}
+	}
+	return newS
 }
