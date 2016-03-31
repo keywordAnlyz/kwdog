@@ -57,3 +57,15 @@ func TestFile(t *testing.T) {
 	}
  
 }
+
+// 仅仅是测试显示信息
+func TestFile2(t *testing.T) {
+	Config.MinFre=2
+	words, err := SegmentFile("testdata/焦裕禄.txt")
+	if err != nil {
+		t.Error(err)
+	}
+	for _,v:=range words{
+		t.Logf("text=%q,pos=%q,fre=%d,positions=%v",v.Text,v.Pos,v.Frequency(),v.Positions )
+	}
+}

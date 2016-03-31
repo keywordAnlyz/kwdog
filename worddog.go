@@ -21,7 +21,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"path"
-	"strings"
+	"strings" 
 
 	"github.com/huichen/sego"
 )
@@ -50,6 +50,8 @@ type Word struct {
 	Text string
 	//词汇属性
 	Pos       string
+	//在字典中登记的频次
+	DictFrequency int 
 	Positions []Position
 }
 
@@ -58,9 +60,8 @@ func (w *Word) Frequency() int {
 	return len(w.Positions)
 }
 
-// 解析本地文件
+// 解析本地文件(文件格式必须是UTF-B格式)
 func SegmentFile(filename string) (map[string]*Word, error) {
-
 	if path.Ext(filename) != ".txt" {
 		return nil, errors.New("仅支持 .txt 纯文本文件解析")
 	}
@@ -77,7 +78,7 @@ func SegmentText(text string) (map[string]*Word, error) {
 	return SegmentByte([]byte(text))
 }
 
-// 解析 Bytes 数据
+// 解析 Bytes 数据，Bytes数据必须是UTF-B格式
 func SegmentByte(bytes []byte) (map[string]*Word, error) {
 	if len(bytes) == 0 {
 		return map[string]*Word{}, nil
@@ -88,6 +89,7 @@ func SegmentByte(bytes []byte) (map[string]*Word, error) {
 	return machin(segments), nil
 }
 
+//解析词汇
 func machin(segments []sego.Segment) map[string]*Word {
 	words := make(map[string]*Word, len(segments)/2)
 
@@ -103,6 +105,7 @@ func machin(segments []sego.Segment) map[string]*Word {
 			words[text] = &Word{
 				Text: text,
 				Pos:  s.Token().Pos(),
+				DictFrequency:s.Token().Frequency(),
 				Positions: []Position{
 					{
 						Start: s.Start(),
