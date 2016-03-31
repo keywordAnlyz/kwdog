@@ -17,12 +17,14 @@
 
 package worddog
 
-import (
-	"image/color"
-	"sort"
-)
+import "sort"
 
-type PositionsSlice []Position
+type PositionsSlice []postionwithword
+
+type postionwithword struct {
+	Position
+	Word *Word
+}
 
 func (p PositionsSlice) Len() int {
 	return len(p)
@@ -32,60 +34,6 @@ func (p PositionsSlice) Less(i, j int) bool {
 }
 func (p PositionsSlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
-}
-
-type Highlight struct {
-	Color color.Color
-}
-
-//将数据中的词汇高亮标注
-func (h *Highlight) Highlight(data []byte, words ...*Word) string {
-
-	if len(words) == 0 {
-		return string(data)
-	}
-
-	// html := bytes.NewBufferString("")
-
-	var positions PositionsSlice
-
-	//收集
-	for _, w := range words {
-		positions = append(positions, w.Positions...)
-	}
-	//排序去重
-	positions = positions.remoteOverlapZone()
-
-	//按顺序修改
-	// 记录修改增长
-	var (
-		tagBegin = []byte("<B>")
-		tagEnd   = []byte("</B>")
-		addLen   = 0
-		signLen  = len(tagBegin) + len(tagEnd)
-	)
-
-	var newStart, newEnd int
-	for _, p := range positions {
-
-		newStart = p.Start + addLen
-		newEnd = p.End + addLen
-
-		//插入 tag
-		newData := make([]byte, 0, len(data)+signLen)
-
-		newData = append(newData, data[:newStart]...)
-		newData = append(newData, tagBegin...)
-		newData = append(newData, data[newStart:newEnd]...)
-		newData = append(newData, tagEnd...)
-		newData = append(newData, data[newEnd:]...)
-
-		data = newData
-		addLen += signLen
-
-	}
-
-	return string(data)
 }
 
 // 删除重叠部分
@@ -108,4 +56,64 @@ func (p PositionsSlice) remoteOverlapZone() PositionsSlice {
 		}
 	}
 	return newS
+}
+
+//默认高亮处理，将使用黄色背景高亮词汇。
+func HighlightDefault(data []byte, words ...*Word) string {
+	return Highlight(data,
+		func(w *Word) (string, string) {
+			return `<font style="background-color:#FFFF00">`, "</font>"
+		},
+		words...)
+}
+
+//将数据中的词汇高亮标注
+// tagFn 用于处理高亮代码格式，返回对应的tag前缀和tag后缀，如: <font color="red">  </font>
+func Highlight(data []byte, tagFn func(*Word) (string, string), words ...*Word) string {
+
+	if len(words) == 0 {
+		return string(data)
+	}
+
+	var positions PositionsSlice
+
+	//收集
+	for _, w := range words {
+		for _, p := range w.Positions {
+			positions = append(positions, postionwithword{Position: p, Word: w})
+		}
+	}
+	//排序去重
+	positions = positions.remoteOverlapZone()
+
+	//按顺序修改
+	// 记录修改增长
+
+	var (
+		newStart, newEnd, addLen int
+		tagBegin, tagEnd         []byte
+	)
+	for _, p := range positions {
+
+		newStart = p.Start + addLen
+		newEnd = p.End + addLen
+
+		tagBeginStr, tabEndStr := tagFn(p.Word)
+		tagBegin, tagEnd = []byte(tagBeginStr), []byte(tabEndStr)
+
+		//插入 tag
+		newData := make([]byte, 0, len(data)+len(tagBegin)+len(tagEnd))
+
+		newData = append(newData, data[:newStart]...)
+		newData = append(newData, tagBegin...)
+		newData = append(newData, data[newStart:newEnd]...)
+		newData = append(newData, tagEnd...)
+		newData = append(newData, data[newEnd:]...)
+
+		data = newData
+		addLen += len(tagBegin) + len(tagEnd)
+
+	}
+
+	return string(data)
 }
