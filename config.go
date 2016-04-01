@@ -131,49 +131,49 @@ func newAppConfig(appConfigProvider, appConfigPath string) (*configer, error) {
 }
 
 func (b *configer) Set(key, val string) error {
-	if err := b.innerConfig.Set(Config.RunMode+"::"+key, val); err != nil {
+	if err := b.innerConfig.Set(key, val); err != nil {
 		return err
 	}
 	return b.innerConfig.Set(key, val)
 }
 
 func (b *configer) String(key string) string {
-	if v := b.innerConfig.String(Config.RunMode + "::" + key); v != "" {
+	if v := b.innerConfig.String(key); v != "" {
 		return v
 	}
 	return b.innerConfig.String(key)
 }
 
 func (b *configer) Strings(key string) []string {
-	if v := b.innerConfig.Strings(Config.RunMode + "::" + key); v[0] != "" {
+	if v := b.innerConfig.Strings(key); v[0] != "" {
 		return v
 	}
 	return b.innerConfig.Strings(key)
 }
 
 func (b *configer) Int(key string) (int, error) {
-	if v, err := b.innerConfig.Int(Config.RunMode + "::" + key); err == nil {
+	if v, err := b.innerConfig.Int(key); err == nil {
 		return v, nil
 	}
 	return b.innerConfig.Int(key)
 }
 
 func (b *configer) Int64(key string) (int64, error) {
-	if v, err := b.innerConfig.Int64(Config.RunMode + "::" + key); err == nil {
+	if v, err := b.innerConfig.Int64(key); err == nil {
 		return v, nil
 	}
 	return b.innerConfig.Int64(key)
 }
 
 func (b *configer) Bool(key string) (bool, error) {
-	if v, err := b.innerConfig.Bool(Config.RunMode + "::" + key); err == nil {
+	if v, err := b.innerConfig.Bool(key); err == nil {
 		return v, nil
 	}
 	return b.innerConfig.Bool(key)
 }
 
 func (b *configer) Float(key string) (float64, error) {
-	if v, err := b.innerConfig.Float(Config.RunMode + "::" + key); err == nil {
+	if v, err := b.innerConfig.Float(key); err == nil {
 		return v, nil
 	}
 	return b.innerConfig.Float(key)
