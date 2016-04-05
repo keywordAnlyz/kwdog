@@ -23,7 +23,7 @@ import (
 	"path"
 	"strings" 
 
-	"github.com/huichen/sego"
+	"github.com/keywordAnlyz/sego"
 )
 
 var (
